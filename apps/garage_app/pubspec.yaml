@@ -1,0 +1,28 @@
+name: mechzo_garage
+description: Mechzo Garage Partner app — queue, accept jobs, dispatch.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1
+  go_router: ^14.6.1
+  mechzo_design:
+    path: ../../packages/mechzo_design
+  mechzo_models:
+    path: ../../packages/mechzo_models
+  mechzo_api:
+    path: ../../packages/mechzo_api
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

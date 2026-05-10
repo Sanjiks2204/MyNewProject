@@ -1,0 +1,48 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.iml
+
+# Logs
+*.log
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+build/
+.env
+.env.local
+.env.*.local
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+**/build/
+.pub-cache/
+.pub/
+.fvm/
+
+# Flutter generated iOS files (recreated by `flutter pub get`)
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/ephemeral/
+**/ios/Runner/GeneratedPluginRegistrant.h
+**/ios/Runner/GeneratedPluginRegistrant.m
+**/ios/Flutter/.last_build_id
+
+# Prisma
+services/api/keys/

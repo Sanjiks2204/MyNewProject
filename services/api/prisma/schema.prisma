@@ -1,0 +1,258 @@
+// Mechzo data model — Phase 1 baseline.
+// PostGIS is enabled by an init.sql; spatial columns use the Unsupported("geometry") type.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+enum UserRole {
+  customer
+  vira
+  garage_admin
+  garage_mechanic
+  mechzo_admin
+  mechzo_ops
+}
+
+enum KycStatus {
+  not_started
+  submitted
+  under_review
+  approved
+  rejected
+  expired
+}
+
+enum VehicleType {
+  car
+  bike
+  scooter
+  suv
+  truck
+  auto
+}
+
+enum FuelType {
+  petrol
+  diesel
+  cng
+  electric
+  hybrid
+}
+
+enum ProblemCategory {
+  flat_tire
+  battery_dead
+  fuel_empty
+  engine_noise
+  overheating
+  brakes
+  electrical
+  accident
+  key_locked_in
+  other
+}
+
+enum JobStatus {
+  draft
+  created
+  matching
+  matched
+  en_route
+  on_site
+  in_progress
+  completed
+  cancelled
+  failed
+}
+
+enum ProviderKind {
+  garage
+  vira
+}
+
+enum PaymentStatus {
+  pending
+  authorised
+  captured
+  refunded
+  failed
+}
+
+model User {
+  id           String     @id @default(cuid())
+  phone        String     @unique
+  role         UserRole
+  name         String?
+  email        String?
+  avatarUrl    String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  customer     Customer?
+  vira         Vira?
+  garageUser   GarageUser?
+  sessions     Session[]
+}
+
+model Customer {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicles  Vehicle[]
+  jobs      Job[]
+  createdAt DateTime   @default(now())
+}
+
+model Vehicle {
+  id         String     @id @default(cuid())
+  customerId String
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  type       VehicleType
+  make       String
+  model      String
+  plate      String
+  fuel       FuelType
+  year       Int?
+  colorHex   String?
+  createdAt  DateTime   @default(now())
+  jobs       Job[]
+
+  @@unique([customerId, plate])
+}
+
+model Vira {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kycStatus    KycStatus @default(not_started)
+  kycSubmittedAt DateTime?
+  approvedAt   DateTime?
+  rating       Float     @default(0)
+  completedJobs Int      @default(0)
+  // current location for matching (PostGIS Point WGS84)
+  liveLocation Unsupported("geometry(Point,4326)")?
+  lastSeenAt   DateTime?
+  online       Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  jobs         Job[]     @relation("ViraJobs")
+  documents    ViraDocument[]
+}
+
+model ViraDocument {
+  id        String    @id @default(cuid())
+  viraId    String
+  vira      Vira      @relation(fields: [viraId], references: [id], onDelete: Cascade)
+  kind      String    // aadhaar, pan, skill_cert, selfie
+  url       String
+  status    KycStatus @default(submitted)
+  reviewNote String?
+  createdAt DateTime  @default(now())
+}
+
+model Garage {
+  id        String       @id @default(cuid())
+  name      String
+  phone     String
+  address   String
+  pincode   String?
+  city      String?
+  rating    Float        @default(0)
+  active    Boolean      @default(true)
+  location  Unsupported("geometry(Point,4326)")
+  users     GarageUser[]
+  jobs      Job[]        @relation("GarageJobs")
+  createdAt DateTime     @default(now())
+}
+
+model GarageUser {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  garageId  String
+  garage    Garage   @relation(fields: [garageId], references: [id], onDelete: Cascade)
+  role      UserRole // garage_admin | garage_mechanic
+  createdAt DateTime @default(now())
+}
+
+model Job {
+  id           String       @id @default(cuid())
+  customerId   String
+  customer     Customer     @relation(fields: [customerId], references: [id])
+  vehicleId    String
+  vehicle      Vehicle      @relation(fields: [vehicleId], references: [id])
+  category     ProblemCategory
+  status       JobStatus    @default(created)
+  description  String?
+  photoUrls    String[]
+  pickupLine   String
+  pickup       Unsupported("geometry(Point,4326)")
+  providerKind ProviderKind?
+  garageId     String?
+  garage       Garage?      @relation("GarageJobs", fields: [garageId], references: [id])
+  viraId       String?
+  vira         Vira?        @relation("ViraJobs", fields: [viraId], references: [id])
+  etaMinutes   Int?
+  priceEstimate Int?
+  priceFinal   Int?
+  payment      Payment?
+  ratings      Rating[]
+  createdAt    DateTime     @default(now())
+  matchedAt    DateTime?
+  arrivedAt    DateTime?
+  completedAt  DateTime?
+  cancelledAt  DateTime?
+  cancelReason String?
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  jobId         String        @unique
+  job           Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  amount        Int
+  currency      String        @default("INR")
+  status        PaymentStatus @default(pending)
+  rzpOrderId    String?
+  rzpPaymentId  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Rating {
+  id        String   @id @default(cuid())
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  byRole    UserRole
+  byUserId  String
+  stars     Int
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+model Session {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshHash   String
+  deviceLabel   String?
+  ip            String?
+  createdAt     DateTime @default(now())
+  revokedAt     DateTime?
+}
+
+model OtpRequest {
+  id         String   @id @default(cuid())
+  phone      String
+  codeHash   String
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([phone, createdAt])
+}
