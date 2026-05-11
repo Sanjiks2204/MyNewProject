@@ -1,2 +1,0 @@
-# MyNewProject hehehe
-hehehehehehe
