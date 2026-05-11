@@ -1,0 +1,13 @@
+name: mechzo_api
+description: Shared API client for Mechzo apps (Dio-based REST + Socket.IO realtime).
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  dio: ^5.7.0
+  socket_io_client: ^2.0.3+1
+  mechzo_models:
+    path: ../mechzo_models
